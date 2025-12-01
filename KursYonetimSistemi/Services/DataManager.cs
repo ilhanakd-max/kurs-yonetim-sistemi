@@ -1,9 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
-using System.Text.Json;
 using System.Linq;
-using System.Text.Encodings.Web;
+using System.Web.Script.Serialization;
 
 namespace KursYonetimSistemi.Services
 {
@@ -14,16 +13,15 @@ namespace KursYonetimSistemi.Services
             "KursYonetimSistemi"
         );
         private static readonly string JsonFilePath = Path.Combine(AppDataPath, "data.json");
-        private readonly JsonSerializerOptions _jsonOptions;
+        private readonly JavaScriptSerializer _serializer;
 
         public AppData Data { get; private set; }
 
         public DataManager()
         {
-            _jsonOptions = new JsonSerializerOptions
+            _serializer = new JavaScriptSerializer
             {
-                WriteIndented = true,
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping // Prevents escaping Turkish characters
+                MaxJsonLength = int.MaxValue
             };
             Directory.CreateDirectory(AppDataPath);
             LoadData();
@@ -36,7 +34,7 @@ namespace KursYonetimSistemi.Services
                 try
                 {
                     var json = File.ReadAllText(JsonFilePath, new UTF8Encoding(true));
-                    Data = JsonSerializer.Deserialize<AppData>(json, _jsonOptions);
+                    Data = _serializer.Deserialize<AppData>(json);
                 }
                 catch (Exception ex)
                 {
@@ -52,7 +50,7 @@ namespace KursYonetimSistemi.Services
 
         public void SaveData()
         {
-            var json = JsonSerializer.Serialize(Data, _jsonOptions);
+            var json = _serializer.Serialize(Data);
             using (var writer = new StreamWriter(JsonFilePath, false, new UTF8Encoding(true)))
             {
                 writer.Write(json);
@@ -92,14 +90,14 @@ namespace KursYonetimSistemi.Services
 
         public void ExportBackup(string path)
         {
-            var json = JsonSerializer.Serialize(Data, _jsonOptions);
+            var json = _serializer.Serialize(Data);
             File.WriteAllText(path, json, new UTF8Encoding(true));
         }
 
         public void ImportBackup(string path)
         {
             var json = File.ReadAllText(path, new UTF8Encoding(true));
-            var importedData = JsonSerializer.Deserialize<AppData>(json, _jsonOptions);
+            var importedData = _serializer.Deserialize<AppData>(json);
             if (importedData != null)
             {
                 Data = importedData;
