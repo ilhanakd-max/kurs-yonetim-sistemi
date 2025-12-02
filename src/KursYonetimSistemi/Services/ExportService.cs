@@ -34,7 +34,8 @@ namespace KursYonetimSistemi.Services
                 for (int i = 0; i < props.Length; i++)
                 {
                     var value = props[i].GetValue(item);
-                    ws.Cell(row, i + 1).SetValue(value ?? string.Empty);
+                    var cell = ws.Cell(row, i + 1);
+                    cell.SetValue(value?.ToString() ?? string.Empty);
                 }
                 row++;
             }
