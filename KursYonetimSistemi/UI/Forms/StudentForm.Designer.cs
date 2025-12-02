@@ -1,0 +1,151 @@
+namespace KursYonetimSistemi.UI.Forms
+{
+    partial class StudentForm
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            this.mainLayout = new System.Windows.Forms.FlowLayoutPanel();
+            this.studentNameLabel = new System.Windows.Forms.Label();
+            this.studentNameTextBox = new System.Windows.Forms.TextBox();
+            this.tcLabel = new System.Windows.Forms.Label();
+            this.tcTextBox = new System.Windows.Forms.TextBox();
+            this.birthdateLabel = new System.Windows.Forms.Label();
+            this.birthdatePicker = new System.Windows.Forms.DateTimePicker();
+            this.phoneLabel = new System.Windows.Forms.Label();
+            this.phoneTextBox = new System.Windows.Forms.TextBox();
+            this.emailLabel = new System.Windows.Forms.Label();
+            this.emailTextBox = new System.Windows.Forms.TextBox();
+            this.addressLabel = new System.Windows.Forms.Label();
+            this.addressTextBox = new System.Windows.Forms.TextBox();
+            this.guardianLabel = new System.Windows.Forms.Label();
+            this.guardianTextBox = new System.Windows.Forms.TextBox();
+            this.notesLabel = new System.Windows.Forms.Label();
+            this.notesTextBox = new System.Windows.Forms.TextBox();
+            this.coursesLabel = new System.Windows.Forms.Label();
+            this.coursesPanel = new System.Windows.Forms.Panel();
+            this.activeCheckBox = new System.Windows.Forms.CheckBox();
+            this.saveButton = new System.Windows.Forms.Button();
+
+            this.mainLayout.SuspendLayout();
+            this.SuspendLayout();
+
+            // mainLayout
+            this.mainLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mainLayout.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.mainLayout.Controls.Add(this.studentNameLabel);
+            this.mainLayout.Controls.Add(this.studentNameTextBox);
+            this.mainLayout.Controls.Add(this.tcLabel);
+            this.mainLayout.Controls.Add(this.tcTextBox);
+            this.mainLayout.Controls.Add(this.birthdateLabel);
+            this.mainLayout.Controls.Add(this.birthdatePicker);
+            this.mainLayout.Controls.Add(this.phoneLabel);
+            this.mainLayout.Controls.Add(this.phoneTextBox);
+            this.mainLayout.Controls.Add(this.emailLabel);
+            this.mainLayout.Controls.Add(this.emailTextBox);
+            this.mainLayout.Controls.Add(this.addressLabel);
+            this.mainLayout.Controls.Add(this.addressTextBox);
+            this.mainLayout.Controls.Add(this.guardianLabel);
+            this.mainLayout.Controls.Add(this.guardianTextBox);
+            this.mainLayout.Controls.Add(this.notesLabel);
+            this.mainLayout.Controls.Add(this.notesTextBox);
+            this.mainLayout.Controls.Add(this.coursesLabel);
+            this.mainLayout.Controls.Add(this.coursesPanel);
+            this.mainLayout.Controls.Add(this.activeCheckBox);
+            this.mainLayout.Controls.Add(this.saveButton);
+
+            // studentNameLabel
+            this.studentNameLabel.Text = "Ad Soyad:";
+            // studentNameTextBox
+            this.studentNameTextBox.Size = new System.Drawing.Size(200, 20);
+
+            // tcLabel
+            this.tcLabel.Text = "TC Kimlik No:";
+            // tcTextBox
+            this.tcTextBox.Size = new System.Drawing.Size(200, 20);
+
+            // birthdateLabel
+            this.birthdateLabel.Text = "Doğum Tarihi:";
+            // birthdatePicker
+            this.birthdatePicker.Size = new System.Drawing.Size(200, 20);
+
+            // phoneLabel
+            this.phoneLabel.Text = "Telefon:";
+            // phoneTextBox
+            this.phoneTextBox.Size = new System.Drawing.Size(200, 20);
+
+            // emailLabel
+            this.emailLabel.Text = "E-posta:";
+            // emailTextBox
+            this.emailTextBox.Size = new System.Drawing.Size(200, 20);
+
+            // addressLabel
+            this.addressLabel.Text = "Adres:";
+            // addressTextBox
+            this.addressTextBox.Size = new System.Drawing.Size(200, 60);
+            this.addressTextBox.Multiline = true;
+
+            // guardianLabel
+            this.guardianLabel.Text = "Veli Bilgisi:";
+            // guardianTextBox
+            this.guardianTextBox.Size = new System.Drawing.Size(200, 20);
+
+            // notesLabel
+            this.notesLabel.Text = "Notlar:";
+            // notesTextBox
+            this.notesTextBox.Size = new System.Drawing.Size(200, 60);
+            this.notesTextBox.Multiline = true;
+
+            // coursesLabel
+            this.coursesLabel.Text = "Kayıtlı Kurslar:";
+            // coursesPanel
+            this.coursesPanel.Size = new System.Drawing.Size(200, 100);
+            this.coursesPanel.AutoScroll = true;
+
+            // activeCheckBox
+            this.activeCheckBox.Text = "Aktif";
+
+            this.saveButton.Text = "Kaydet";
+            this.saveButton.Click += new System.EventHandler(this.saveButton_Click);
+
+            this.Controls.Add(this.mainLayout);
+            this.Text = "Öğrenci Formu";
+
+            this.mainLayout.ResumeLayout(false);
+            this.mainLayout.PerformLayout();
+            this.ResumeLayout(false);
+        }
+
+        private System.Windows.Forms.FlowLayoutPanel mainLayout;
+        private System.Windows.Forms.Label studentNameLabel;
+        private System.Windows.Forms.TextBox studentNameTextBox;
+        private System.Windows.Forms.Label tcLabel;
+        private System.Windows.Forms.TextBox tcTextBox;
+        private System.Windows.Forms.Label birthdateLabel;
+        private System.Windows.Forms.DateTimePicker birthdatePicker;
+        private System.Windows.Forms.Label phoneLabel;
+        private System.Windows.Forms.TextBox phoneTextBox;
+        private System.Windows.Forms.Label emailLabel;
+        private System.Windows.Forms.TextBox emailTextBox;
+        private System.Windows.Forms.Label addressLabel;
+        private System.Windows.Forms.TextBox addressTextBox;
+        private System.Windows.Forms.Label guardianLabel;
+        private System.Windows.Forms.TextBox guardianTextBox;
+        private System.Windows.Forms.Label notesLabel;
+        private System.Windows.Forms.TextBox notesTextBox;
+        private System.Windows.Forms.Label coursesLabel;
+        private System.Windows.Forms.Panel coursesPanel;
+        private System.Windows.Forms.CheckBox activeCheckBox;
+        private System.Windows.Forms.Button saveButton;
+    }
+}
