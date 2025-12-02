@@ -1,0 +1,21 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31912.275
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KursYonetimSistemi", "src\\KursYonetimSistemi\\KursYonetimSistemi.csproj", "{cc0a94a7-f65d-4399-b07e-973845e6988e}"
+EndProject
+Global
+GlobalSection(SolutionConfigurationPlatforms) = preSolution
+Debug|Any CPU = Debug|Any CPU
+Release|Any CPU = Release|Any CPU
+EndGlobalSection
+GlobalSection(ProjectConfigurationPlatforms) = postSolution
+{cc0a94a7-f65d-4399-b07e-973845e6988e}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+{cc0a94a7-f65d-4399-b07e-973845e6988e}.Debug|Any CPU.Build.0 = Debug|Any CPU
+{cc0a94a7-f65d-4399-b07e-973845e6988e}.Release|Any CPU.ActiveCfg = Release|Any CPU
+{cc0a94a7-f65d-4399-b07e-973845e6988e}.Release|Any CPU.Build.0 = Release|Any CPU
+EndGlobalSection
+GlobalSection(SolutionProperties) = preSolution
+HideSolutionNode = FALSE
+EndGlobalSection
+EndGlobal
