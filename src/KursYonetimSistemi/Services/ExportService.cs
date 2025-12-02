@@ -25,7 +25,7 @@ namespace KursYonetimSistemi.Services
             var props = typeof(T).GetProperties();
             for (int i = 0; i < props.Length; i++)
             {
-                ws.Cell(1, i + 1).Value = props[i].Name;
+                ws.Cell(1, i + 1).SetValue(props[i].Name);
             }
 
             int row = 2;
@@ -33,7 +33,8 @@ namespace KursYonetimSistemi.Services
             {
                 for (int i = 0; i < props.Length; i++)
                 {
-                    ws.Cell(row, i + 1).Value = props[i].GetValue(item);
+                    var value = props[i].GetValue(item);
+                    ws.Cell(row, i + 1).SetValue(value ?? string.Empty);
                 }
                 row++;
             }
@@ -44,7 +45,7 @@ namespace KursYonetimSistemi.Services
 
         public void ExportPdf(string path, string baslik, IEnumerable<string> satirlar)
         {
-            var font = Fonts.TryResolve("Arial") ?? Fonts.Calibri;
+            var font = Fonts.Calibri;
             QuestPDF.Settings.License = LicenseType.Community;
 
             Document.Create(container =>
