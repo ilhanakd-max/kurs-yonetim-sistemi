@@ -394,6 +394,16 @@
             position: relative;
         }
 
+        .calendar-day.addable {
+            cursor: pointer;
+            border: 2px dashed #5dade2;
+            background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%);
+        }
+
+        .calendar-day.addable:hover {
+            box-shadow: 0 4px 12px rgba(41, 128, 185, 0.2);
+        }
+
         .calendar-day.other-month {
             background: #f5f6fa;
             opacity: 0.5;
@@ -418,6 +428,21 @@
 
         .day-events {
             font-size: 0.75rem;
+            margin-top: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .day-events.empty .empty-slot {
+            padding: 0.4rem 0.5rem;
+            border-radius: 6px;
+            background: #ebf5fb;
+            color: #2e86c1;
+            font-size: 0.9rem;
+            border: 1px dashed #5dade2;
+            text-align: center;
+            font-weight: 600;
         }
 
         .event-item {
@@ -2975,6 +3000,7 @@ function renderUpcomingHolidays() {
                 const isHolidayDay = isHoliday(date);
                 const dayOfWeek = date.getDay();
 
+                const dateStr = formatDateForInput(date);
                 let classes = 'calendar-day';
                 if (isToday) classes += ' today';
                 if (isWeekendDay) classes += ' weekend';
@@ -2983,25 +3009,33 @@ function renderUpcomingHolidays() {
                 const daySchedules = data.schedules
                     .filter(s => isScheduleScheduledForDate(s, date) && parseInt(s.day) === dayOfWeek)
                     .map(s => getScheduleInstance(s, date));
-                
-                html += `<div class="${classes}">
+
+                const canQuickCreate = isAdmin() && daySchedules.length === 0;
+
+                html += `<div class="${classes}${canQuickCreate ? ' addable' : ''}"${canQuickCreate ? ` onclick=\"openScheduleModal(null, { date: '${dateStr}' })\"` : ''}>
                     <div class="day-number">${day}</div>`;
-                
+
                 if (isHolidayDay) {
                     html += `<div style="font-size: 0.7rem; color: #c0392b;">${getHolidayName(date)}</div>`;
                 }
-                
-                html += '<div class="day-events">';
-                daySchedules.slice(0, 3).forEach(s => {
-                    const course = data.courses.find(c => c.id === s.courseId);
-                    const workshop = data.workshops.find(w => w.id === s.workshopId);
-                    const color = workshop ? workshop.color : '#3498db';
-                    const background = s.cancelled ? '#e74c3c' : color;
-                    const timeLabel = s.cancelled ? 'İptal' : s.startTime;
-                    html += `<div class="event-item ${s.cancelled ? 'cancelled' : ''}" style="background: ${background};" onclick="showScheduleDetail('${s.id}', '${formatDateForInput(date)}')">${timeLabel} ${course ? course.name.substring(0, 10) : ''}</div>`;
-                });
-                if (daySchedules.length > 3) {
-                    html += `<div style="font-size: 0.7rem; color: #666;">+${daySchedules.length - 3} ders daha</div>`;
+
+                html += `<div class="day-events${daySchedules.length === 0 ? ' empty' : ''}">`;
+                if (daySchedules.length === 0) {
+                    if (canQuickCreate) {
+                        html += '<div class="empty-slot">+ Ders ekle</div>';
+                    }
+                } else {
+                    daySchedules.slice(0, 3).forEach(s => {
+                        const course = data.courses.find(c => c.id === s.courseId);
+                        const workshop = data.workshops.find(w => w.id === s.workshopId);
+                        const color = workshop ? workshop.color : '#3498db';
+                        const background = s.cancelled ? '#e74c3c' : color;
+                        const timeLabel = s.cancelled ? 'İptal' : s.startTime;
+                        html += `<div class="event-item ${s.cancelled ? 'cancelled' : ''}" style="background: ${background};" onclick="showScheduleDetail('${s.id}', '${formatDateForInput(date)}')">${timeLabel} ${course ? course.name.substring(0, 10) : ''}</div>`;
+                    });
+                    if (daySchedules.length > 3) {
+                        html += `<div style="font-size: 0.7rem; color: #666;">+${daySchedules.length - 3} ders daha</div>`;
+                    }
                 }
                 html += '</div></div>';
             }
@@ -3148,7 +3182,7 @@ function renderUpcomingHolidays() {
             }).join('');
         }
 
-        function openScheduleModal(id = null) {
+        function openScheduleModal(id = null, defaults = {}) {
             if (!requireAdmin()) return;
             document.getElementById('scheduleForm').reset();
             document.getElementById('scheduleId').value = '';
@@ -3177,6 +3211,27 @@ function renderUpcomingHolidays() {
                     document.getElementById('scheduleEndDate').value = schedule.endDate || (calculatedEnd ? formatDateForInput(calculatedEnd) : '');
                     document.getElementById('scheduleNotes').value = schedule.notes || '';
                     document.getElementById('scheduleActive').checked = schedule.active;
+                }
+            } else {
+                const defaultDate = defaults.date ? (typeof defaults.date === 'string' ? parseLocalDate(defaults.date) : new Date(defaults.date)) : null;
+                const dayValue = typeof defaults.day !== 'undefined'
+                    ? defaults.day
+                    : (defaultDate ? defaultDate.getDay() : null);
+
+                if (defaultDate && !isNaN(defaultDate)) {
+                    document.getElementById('scheduleStartDate').value = formatDateForInput(defaultDate);
+                }
+
+                if (dayValue !== null && dayValue !== undefined) {
+                    document.getElementById('scheduleDay').value = dayValue;
+                }
+
+                if (defaults.startTime) {
+                    document.getElementById('scheduleStartTime').value = defaults.startTime;
+                }
+
+                if (defaults.endTime) {
+                    document.getElementById('scheduleEndTime').value = defaults.endTime;
                 }
             }
 
