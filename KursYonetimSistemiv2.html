@@ -436,6 +436,12 @@
             background: var(--primary-color);
         }
 
+        .event-item.cancelled {
+            background: #e74c3c;
+            text-decoration: line-through;
+            opacity: 0.8;
+        }
+
         /* Weekly Schedule */
         .weekly-schedule {
             display: grid;
@@ -486,6 +492,12 @@
 
         .schedule-event:hover {
             background: var(--primary-color);
+        }
+
+        .schedule-event.cancelled {
+            background: #e74c3c;
+            text-decoration: line-through;
+            opacity: 0.8;
         }
 
         /* Stats */
@@ -1946,6 +1958,7 @@
             teachers: [],
             students: [],
             schedules: [],
+            scheduleOverrides: [],
             holidays: [],
             users: [],
             attendanceRecords: [],
@@ -1991,6 +2004,7 @@
 
             if (!Array.isArray(data.users)) data.users = [];
             if (!Array.isArray(data.attendanceRecords)) data.attendanceRecords = [];
+            if (!Array.isArray(data.scheduleOverrides)) data.scheduleOverrides = [];
         }
 
         function saveData() {
@@ -2361,6 +2375,49 @@
             return null;
         }
 
+        function getScheduleOverride(scheduleId, date) {
+            const dateStr = typeof date === 'string' ? date : formatDateForInput(new Date(date));
+            if (!dateStr) return null;
+            return (data.scheduleOverrides || []).find(o => o.scheduleId === scheduleId && o.date === dateStr) || null;
+        }
+
+        function getScheduleInstance(schedule, date) {
+            const override = date ? getScheduleOverride(schedule.id, date) : null;
+            const instance = { ...schedule, cancelled: false, override };
+
+            if (override?.status === 'cancelled') {
+                instance.cancelled = true;
+                return instance;
+            }
+
+            if (override?.status === 'updated') {
+                instance.startTime = override.startTime || schedule.startTime;
+                instance.endTime = override.endTime || schedule.endTime;
+                instance.workshopId = override.workshopId || schedule.workshopId;
+            }
+
+            return instance;
+        }
+
+        function isScheduleScheduledForDate(schedule, date) {
+            const isActive = schedule.active !== false;
+            if (!isActive) return false;
+
+            const targetDate = new Date(date);
+            targetDate.setHours(0, 0, 0, 0);
+
+            const start = schedule.startDate ? parseLocalDate(schedule.startDate) : null;
+            const end = getScheduleEndDate(schedule);
+
+            if (start && targetDate < start) return false;
+            if (end && targetDate > end) return false;
+
+            const override = getScheduleOverride(schedule.id, targetDate);
+            if (override?.status === 'cancelled') return false;
+
+            return true;
+        }
+
         function isScheduleActiveOn(schedule, date) {
             const isActive = schedule.active !== false;
             if (!isActive) return false;
@@ -2479,7 +2536,7 @@
             });
         }
 
-        function openAttendanceModal(courseId) {
+        function openAttendanceModal(courseId, dateStr = null) {
             if (!currentUser) {
                 showNotification('Önce giriş yapın.', 'error');
                 return;
@@ -2495,7 +2552,9 @@
             document.getElementById('attendanceCourseName').value = course ? course.name : '';
 
             const dateInput = document.getElementById('attendanceDate');
-            if (!dateInput.value) {
+            if (dateStr) {
+                dateInput.value = dateStr;
+            } else if (!dateInput.value) {
                 dateInput.value = formatDateForInput(new Date());
             }
             renderAttendanceStudents();
@@ -2689,7 +2748,10 @@
         function renderTodayLessons() {
             const todayDate = new Date();
             const today = todayDate.getDay();
-            const todaySchedules = data.schedules.filter(s => isScheduleActiveOn(s, todayDate) && parseInt(s.day) === today);
+            const todaySchedules = data.schedules
+                .filter(s => isScheduleScheduledForDate(s, todayDate) && parseInt(s.day) === today)
+                .map(s => getScheduleInstance(s, todayDate))
+                .filter(s => !s.cancelled);
             
             const container = document.getElementById('todayLessons');
             if (todaySchedules.length === 0) {
@@ -2754,9 +2816,10 @@
             const now = new Date();
             const today = now.getDay();
 
-            const todaySchedules = data.schedules.filter(s => 
-                isScheduleActiveOn(s, now) && parseInt(s.day) === today
-            );
+            const todaySchedules = data.schedules
+                .filter(s => isScheduleScheduledForDate(s, now) && parseInt(s.day) === today)
+                .map(s => getScheduleInstance(s, now))
+                .filter(s => !s.cancelled);
 
             if (todaySchedules.length === 0) {
                 container.innerHTML = '<p style="color: #7f8c8d;">Bugün için planlanmış ders bulunmamaktadır.</p>';
@@ -2860,19 +2923,17 @@ function renderUpcomingHolidays() {
                     const isWeekendCell = dayNum === 0 || dayNum === 6;
                     const cellDate = new Date(weekStart);
                     cellDate.setDate(weekStart.getDate() + i);
-                    const schedules = data.schedules.filter(s =>
-                        isScheduleActiveOn(s, cellDate) &&
-                        parseInt(s.day) === dayNum &&
-                        s.startTime <= time &&
-                        s.endTime > time
-                    );
+                    const schedules = data.schedules
+                        .filter(s => isScheduleScheduledForDate(s, cellDate) && parseInt(s.day) === dayNum)
+                        .map(s => getScheduleInstance(s, cellDate))
+                        .filter(s => !s.cancelled && s.startTime <= time && s.endTime > time);
                     
                     html += `<div class="schedule-cell ${isWeekendCell ? 'weekend' : ''}">`;
                     schedules.forEach(s => {
                         const course = data.courses.find(c => c.id === s.courseId);
                         const workshop = data.workshops.find(w => w.id === s.workshopId);
                         const color = workshop ? workshop.color : '#3498db';
-                        html += `<div class="schedule-event" style="background: ${color};" onclick="showScheduleDetail('${s.id}')">${course ? course.name : 'Ders'}</div>`;
+                        html += `<div class="schedule-event" style="background: ${color};" onclick="showScheduleDetail('${s.id}', '${formatDateForInput(cellDate)}')">${course ? course.name : 'Ders'}</div>`;
                     });
                     html += '</div>';
                 }
@@ -2919,7 +2980,9 @@ function renderUpcomingHolidays() {
                 if (isWeekendDay) classes += ' weekend';
                 if (isHolidayDay) classes += ' holiday';
 
-                const daySchedules = data.schedules.filter(s => isScheduleActiveOn(s, date) && parseInt(s.day) === dayOfWeek);
+                const daySchedules = data.schedules
+                    .filter(s => isScheduleScheduledForDate(s, date) && parseInt(s.day) === dayOfWeek)
+                    .map(s => getScheduleInstance(s, date));
                 
                 html += `<div class="${classes}">
                     <div class="day-number">${day}</div>`;
@@ -2933,7 +2996,9 @@ function renderUpcomingHolidays() {
                     const course = data.courses.find(c => c.id === s.courseId);
                     const workshop = data.workshops.find(w => w.id === s.workshopId);
                     const color = workshop ? workshop.color : '#3498db';
-                    html += `<div class="event-item" style="background: ${color};" onclick="showScheduleDetail('${s.id}')">${s.startTime} ${course ? course.name.substring(0, 10) : ''}</div>`;
+                    const background = s.cancelled ? '#e74c3c' : color;
+                    const timeLabel = s.cancelled ? 'İptal' : s.startTime;
+                    html += `<div class="event-item ${s.cancelled ? 'cancelled' : ''}" style="background: ${background};" onclick="showScheduleDetail('${s.id}', '${formatDateForInput(date)}')">${timeLabel} ${course ? course.name.substring(0, 10) : ''}</div>`;
                 });
                 if (daySchedules.length > 3) {
                     html += `<div style="font-size: 0.7rem; color: #666;">+${daySchedules.length - 3} ders daha</div>`;
@@ -3014,12 +3079,15 @@ function renderUpcomingHolidays() {
                     const cellDate = new Date(weekStart);
                     cellDate.setDate(weekStart.getDate() + i);
 
-                    const schedules = data.schedules.filter(s => {
-                        if (!isScheduleActiveOn(s, cellDate) || parseInt(s.day) !== dayNum) return false;
-                        const startHourSched = parseInt(s.startTime.split(':')[0]);
-                        const endHourSched = parseInt(s.endTime.split(':')[0]);
-                        return hour >= startHourSched && hour < endHourSched;
-                    });
+                    const schedules = data.schedules
+                        .filter(s => isScheduleScheduledForDate(s, cellDate) && parseInt(s.day) === dayNum)
+                        .map(s => getScheduleInstance(s, cellDate))
+                        .filter(s => {
+                            if (s.cancelled) return false;
+                            const startHourSched = parseInt(s.startTime.split(':')[0]);
+                            const endHourSched = parseInt(s.endTime.split(':')[0]);
+                            return hour >= startHourSched && hour < endHourSched;
+                        });
                     
                     html += `<div class="schedule-cell ${isWeekendDay ? 'weekend' : ''}">`;
                     schedules.forEach(s => {
@@ -3027,7 +3095,7 @@ function renderUpcomingHolidays() {
                         const teacher = data.teachers.find(t => t.id === s.teacherId);
                         const workshop = data.workshops.find(w => w.id === s.workshopId);
                         const color = workshop ? workshop.color : '#3498db';
-                        html += `<div class="schedule-event" style="background: ${color};" onclick="showScheduleDetail('${s.id}')">
+                        html += `<div class="schedule-event" style="background: ${color};" onclick="showScheduleDetail('${s.id}', '${formatDateForInput(cellDate)}')">
                             ${course ? course.name : ''}<br>
                             <small>${teacher ? teacher.name : ''}</small>
                         </div>`;
@@ -3255,20 +3323,62 @@ function renderUpcomingHolidays() {
             if (!requireAdmin()) return;
             if (confirm('Bu dersi silmek istediğinizden emin misiniz?')) {
                 data.schedules = data.schedules.filter(s => s.id !== id);
+                data.scheduleOverrides = data.scheduleOverrides.filter(o => o.scheduleId !== id);
                 saveData();
                 showNotification('Ders silindi!');
                 renderAll();
             }
         }
 
-        function showScheduleDetail(id) {
+        function showScheduleDetail(id, date = null) {
             const schedule = data.schedules.find(s => s.id === id);
             if (!schedule) return;
-            
+
+            const targetDate = date ? (typeof date === 'string' ? date : formatDateForInput(new Date(date))) : formatDateForInput(new Date());
+            const instance = date ? getScheduleInstance(schedule, targetDate) : schedule;
+
             const course = data.courses.find(c => c.id === schedule.courseId);
             const teacher = data.teachers.find(t => t.id === schedule.teacherId);
-            const workshop = data.workshops.find(w => w.id === schedule.workshopId);
-            
+            const workshop = data.workshops.find(w => w.id === (instance.workshopId || schedule.workshopId));
+            const override = date ? getScheduleOverride(schedule.id, targetDate) : null;
+
+            const selectedWorkshopId = override?.workshopId || schedule.workshopId;
+            const workshopOptions = data.workshops
+                .filter(w => w.active)
+                .map(w => `<option value="${w.id}" ${selectedWorkshopId === w.id ? 'selected' : ''}>${w.name}</option>`)
+                .join('');
+
+            const overrideSection = date ? `
+                <div class="card" style="margin-top:1rem;">
+                    <h4 style="margin-bottom:0.5rem;">Günlük İşlem (${targetDate})</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Durum</label>
+                            <select id="overrideStatus-${schedule.id}-${targetDate}" onchange="toggleOverrideFields('${schedule.id}', '${targetDate}')">
+                                <option value="normal" ${!override ? 'selected' : ''}>Planlandığı gibi</option>
+                                <option value="updated" ${override?.status === 'updated' ? 'selected' : ''}>Saat/Atölye Güncelle</option>
+                                <option value="cancelled" ${override?.status === 'cancelled' ? 'selected' : ''}>Dersi İptal Et</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Başlangıç Saati</label>
+                            <input type="time" id="overrideStart-${schedule.id}-${targetDate}" value="${override?.startTime || schedule.startTime}" ${override?.status === 'cancelled' ? 'disabled' : ''}>
+                        </div>
+                        <div class="form-group">
+                            <label>Bitiş Saati</label>
+                            <input type="time" id="overrideEnd-${schedule.id}-${targetDate}" value="${override?.endTime || schedule.endTime}" ${override?.status === 'cancelled' ? 'disabled' : ''}>
+                        </div>
+                        <div class="form-group">
+                            <label>Atölye</label>
+                            <select id="overrideWorkshop-${schedule.id}-${targetDate}" ${override?.status === 'cancelled' ? 'disabled' : ''}>${workshopOptions}</select>
+                        </div>
+                    </div>
+                    <div style="margin-top:0.75rem; text-align:right;">
+                        <button class="btn btn-primary" onclick="saveScheduleOverride('${schedule.id}', '${targetDate}')">Kaydet</button>
+                    </div>
+                </div>
+            ` : '';
+
             document.getElementById('detailModalTitle').textContent = 'Ders Detayı';
             document.getElementById('detailModalContent').innerHTML = `
                 <div class="form-grid">
@@ -3276,15 +3386,87 @@ function renderUpcomingHolidays() {
                     <div><strong>Eğitmen:</strong> ${teacher ? teacher.name : '-'}</div>
                     <div><strong>Atölye:</strong> ${workshop ? workshop.name : '-'}</div>
                     <div><strong>Gün:</strong> ${getDayName(parseInt(schedule.day))}</div>
-                    <div><strong>Saat:</strong> ${schedule.startTime} - ${schedule.endTime}</div>
-                    <div><strong>Durum:</strong> ${schedule.active ? 'Aktif' : 'Pasif'}</div>
+                    <div><strong>Saat:</strong> ${instance.startTime} - ${instance.endTime}</div>
+                    <div><strong>Durum:</strong> ${instance.cancelled ? 'İptal' : (schedule.active ? 'Aktif' : 'Pasif')}</div>
                 </div>
+                ${override?.status === 'updated' ? `<div style="margin-top:0.5rem; color:#6b7280;">Bu gün için saat/atölye bilgisi güncellendi.</div>` : ''}
+                ${override?.status === 'cancelled' ? `<div style="margin-top:0.5rem; color:#e74c3c;">Bu gün için ders iptal edildi.</div>` : ''}
                 ${schedule.notes ? `<div style="margin-top: 1rem;"><strong>Notlar:</strong><br>${schedule.notes}</div>` : ''}
                 <div class="btn-group" style="margin-top: 1rem;">
+                    <button class="btn btn-secondary" onclick="openAttendanceFromSchedule('${schedule.id}', '${targetDate}')">📋 Yoklama</button>
                     <button class="btn btn-primary" onclick="closeModal('detailModal'); editSchedule('${schedule.id}');">✏️ Düzenle</button>
                 </div>
+                ${overrideSection}
             `;
             openModal('detailModal');
+        }
+
+        function openAttendanceFromSchedule(scheduleId, dateStr) {
+            const schedule = data.schedules.find(s => s.id === scheduleId);
+            if (!schedule) return;
+
+            closeModal('detailModal');
+            openAttendanceModal(schedule.courseId, dateStr || formatDateForInput(new Date()));
+        }
+
+        function toggleOverrideFields(scheduleId, dateStr) {
+            const status = document.getElementById(`overrideStatus-${scheduleId}-${dateStr}`)?.value;
+            const disabled = status === 'cancelled';
+            ['Start', 'End', 'Workshop'].forEach(suffix => {
+                const el = document.getElementById(`override${suffix}-${scheduleId}-${dateStr}`);
+                if (el) el.disabled = disabled;
+            });
+        }
+
+        function saveScheduleOverride(scheduleId, dateStr) {
+            if (!isAdmin()) {
+                showNotification('Bu işlem için yönetici yetkisi gereklidir.', 'error');
+                return;
+            }
+
+            const statusEl = document.getElementById(`overrideStatus-${scheduleId}-${dateStr}`);
+            const startEl = document.getElementById(`overrideStart-${scheduleId}-${dateStr}`);
+            const endEl = document.getElementById(`overrideEnd-${scheduleId}-${dateStr}`);
+            const workshopEl = document.getElementById(`overrideWorkshop-${scheduleId}-${dateStr}`);
+
+            const status = statusEl?.value || 'normal';
+            const startTime = startEl?.value;
+            const endTime = endEl?.value;
+            const workshopId = workshopEl?.value;
+
+            const existingIndex = data.scheduleOverrides.findIndex(o => o.scheduleId === scheduleId && o.date === dateStr);
+
+            if (status === 'normal') {
+                if (existingIndex !== -1) {
+                    data.scheduleOverrides.splice(existingIndex, 1);
+                }
+            } else {
+                if (status === 'updated' && (!startTime || !endTime || !workshopId)) {
+                    showNotification('Saat ve atölye bilgilerini doldurun.', 'error');
+                    return;
+                }
+
+                const override = {
+                    id: existingIndex !== -1 ? data.scheduleOverrides[existingIndex].id : generateId(),
+                    scheduleId,
+                    date: dateStr,
+                    status,
+                    startTime,
+                    endTime,
+                    workshopId
+                };
+
+                if (existingIndex !== -1) {
+                    data.scheduleOverrides[existingIndex] = { ...data.scheduleOverrides[existingIndex], ...override };
+                } else {
+                    data.scheduleOverrides.push(override);
+                }
+            }
+
+            saveData();
+            showNotification('Günlük ders ayarı güncellendi.');
+            closeModal('detailModal');
+            renderAll();
         }
 
         function searchSchedule() {
